@@ -58,6 +58,7 @@ abstract class AlogramBaseClient {
                 .withDelay(Duration.ofSeconds(1))
                 .withMaxRetries(2)
                 .withBackoff(Duration.ofSeconds(1), Duration.ofSeconds(10))
+                .withJitter(0.2)
                 .build();
     }
 
