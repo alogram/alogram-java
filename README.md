@@ -21,13 +21,13 @@ The official Java client for the **Alogram Payments Risk API**. This SDK provide
 <dependency>
     <groupId>com.alogram</groupId>
     <artifactId>alogram-payrisk</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.6-rc.2</version>
 </dependency>
 ```
 
 ### Gradle
 ```gradle
-implementation 'com.alogram:alogram-payrisk:0.1.0'
+implementation 'com.alogram:alogram-payrisk:0.1.6-rc.2'
 ```
 
 ---
