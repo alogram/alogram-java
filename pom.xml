@@ -5,8 +5,8 @@
     <artifactId>alogram-payrisk</artifactId>
     <packaging>jar</packaging>
     <name>Alogram Payrisk Java SDK</name>
-    <version>0.1.6-rc.8</version>
-    <url>https://alogram.ai</url>
+    <version>0.1.6-rc.14</version>
+    <url>https://www.alogram.ai</url>
     <description>The official Java client for the Alogram Payments Risk API.</description>
     <scm>
         <connection>scm:git:git@github.com:alogram/alogram-java.git</connection>
@@ -24,10 +24,10 @@
 
     <developers>
         <developer>
-            <name>Alogram Engineering</name>
+            <name>Alogram Inc.</name>
             <email>support@alogram.ai</email>
             <organization>Alogram Inc.</organization>
-            <organizationUrl>https://alogram.ai</organizationUrl>
+            <organizationUrl>https://www.alogram.ai</organizationUrl>
         </developer>
     </developers>
 
