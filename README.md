@@ -18,7 +18,7 @@ The official Alogram PayRisk 'Smart' SDK for Java. Designed for enterprise finan
 <dependency>
     <groupId>com.alogram</groupId>
     <artifactId>alogram-payrisk-java</artifactId>
-    <version>0.1.6-rc.3</version>
+    <version>0.1.6-rc.8</version>
 </dependency>
 ```
 
