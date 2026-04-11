@@ -3,14 +3,25 @@
 [![Maven Central](https://img.shields.io/maven-central/v/com.alogram/alogram-payrisk-java.svg)](https://search.maven.org/artifact/com.alogram/alogram-payrisk-java)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-The official Alogram PayRisk 'Smart' SDK for Java. Designed for enterprise financial systems that require high resiliency, thread-safe performance, and native observability.
+The official Java client for the **Alogram PayRisk Engine**. 
+
+Alogram PayRisk is a decision management and risk orchestration engine for global commerce. It fuses machine learning, behavioral analytics, and deterministic business rules into a high-fidelity scoring pipeline designed for enterprise scale and auditability.
+
+## 🧠 The Three-Expert Architecture
+
+The SDK provides unified access to three specialized risk experts:
+
+-   **Risk Scoring**: Real-time assessment and decision orchestration for purchases.
+-   **Signal Intelligence**: Ingestion of behavioral telemetry and payment lifecycle events.
+-   **Forensic Data**: Deep visibility into historical assessments and decision transparency.
 
 ## 🚀 Features
 
 -   **🏢 Smart Client Architecture**: Thread-safe clients for server-side (`AlogramRiskClient`) and edge (`AlogramPublicClient`).
 -   **🛡️ Automated Identity**: Automatic injection of `x-api-key`, `Authorization`, and tenant headers.
 -   **🔄 Built-in Resiliency**: Transparent exponential backoff and jittered retries (3 retries on 429/5xx).
--   **🕵️ OpenTelemetry Ready**: Native tracing support via OpenTelemetry API.
+-   **🕵️ Native Observability**: Native tracing support via OpenTelemetry API.
+-   **🏗️ Enterprise Ready**: Robust Builder pattern and thread-safe execution.
 
 ## 📦 Installation
 
@@ -18,105 +29,82 @@ The official Alogram PayRisk 'Smart' SDK for Java. Designed for enterprise finan
 <dependency>
     <groupId>com.alogram</groupId>
     <artifactId>alogram-payrisk-java</artifactId>
-    <version>0.1.6-rc.8</version>
+    <version>0.2.5</version>
 </dependency>
 ```
 
 ## 🛠️ Quick Start
 
-### Evaluate Risk (Server-Side)
+### Evaluate Risk (Risk Scoring Expert)
+
+Assess a purchase in real-time. This invokes the authoritative scoring pipeline.
 
 ```java
 AlogramRiskClient client = new AlogramRiskClient.Builder()
-    .apiKey("sk_live_your_secret_key")
+    .apiKey("sk_live_...")
     .build();
 
 CheckRequest request = new CheckRequest()
     .purchase(new Purchase().amount(99.99).currency("USD"));
 
+// Perform the check via the Risk Scoring expert
 DecisionResponse decision = client.checkRisk(request);
+
 System.out.println("Decision: " + decision.getDecision());
+System.out.println("Score: " + decision.getDecisionScore());
 ```
 
 ---
 
-## 🛡️ Error Handling
+## 🛡️ Error Handling & Resiliency
 
-Handle specific API exceptions to ensure transaction continuity:
+The SDK distinguishes between transient network issues and validation errors.
 
 ```java
 import com.alogram.payrisk.exceptions.*;
 
 try {
     DecisionResponse res = client.checkRisk(request);
-} catch (RateLimitException e) {
-    // 🔄 Standard retries are handled by Failsafe inside the SDK
 } catch (ValidationException e) {
     // ❌ Handle invalid payload data
-    System.out.println(e.getResponseBody());
+    System.out.println("Invalid Request: " + e.getResponseBody());
 } catch (AlogramException e) {
-    // 🚨 Generic SDK error
+    // 🚨 Handle generic API or Auth errors
 }
 ```
 
-## 🔑 Authentication & Keys
+## 🕵️ Observability (OpenTelemetry)
 
-Obtain your keys from the [Alogram Dashboard](https://dashboard.alogram.ai/keys).
+The SDK automatically detects OpenTelemetry. If present, it creates spans for all API calls.
 
-| Key Type | Prefix | Client | Use Case |
-| :--- | :--- | :--- | :--- |
-| **Secret Key** | `sk_live_...` | `AlogramRiskClient` | Server-side risk checks. **Never expose.** |
-| **Publishable Key** | `pk_live_...` | `AlogramPublicClient` | Frontend behavioral signals. |
+```java
+import io.opentelemetry.api.trace.Span;
 
-## 🤖 For AI Agents (Integration Context)
+// Spans will automatically include 'alogram.decision' and 'alogram.trace_id'
+Span span = tracer.spanBuilder("checkout").startSpan();
+try (Scope scope = span.makeCurrent()) {
+    DecisionResponse res = client.checkRisk(request);
+} finally {
+    span.end();
+}
+```
 
-If you are using an AI agent (like ChatGPT, Claude, or Gemini), provide this context:
+## 🏗️ Environments
 
-> "I am integrating the Alogram PayRisk Java SDK. I need to call `checkRisk` in my Spring Boot controller. Use the `AlogramRiskClient`, handle `RateLimitException` gracefully, and ensure you use the `idempotencyKey` and `Builder` pattern."
+| Environment | Base URL | Key Type |
+| :--- | :--- | :--- |
+| **Production** | `https://api.alogram.ai` | `sk_live_...` |
+| **Sandbox** | `https://api-sandbox.alogram.ai` | `sk_test_...` |
+| **Local** | `http://localhost:8080` | `test` |
 
 ---
 
-## 🧪 Local Testing & Mocking
+## 🤖 For AI Agents
 
-Use the zero-dependency `MockRiskClient` for JUnit tests:
-
-```java
-MockRiskClient mock = new MockRiskClient();
-mock.queueDecision("decline", 0.95, "high_risk_ip");
-
-DecisionResponse decision = myApp.process(mock);
-System.out.println(decision.getDecision()); // "decline"
-```
-
-## 🏗️ Environment Testing
-
-### Alogram Sandbox
-For safe integration testing, point your client to the Sandbox environment:
-```java
-AlogramRiskClient client = new AlogramRiskClient.Builder()
-    .apiKey("sk_test_...")
-    .baseUrl("https://api-sandbox.alogram.ai")
-    .build();
-```
-
-### Local Emulator
-For hermetic local testing, run the **Alogram Local Emulator**:
-```bash
-docker run -p 8080:8080 alogram/payrisk-emulator
-```
-Point your client to the local instance:
-```java
-AlogramRiskClient client = new AlogramRiskClient.Builder()
-    .baseUrl("http://localhost:8080")
-    .apiKey("test")
-    .build();
-```
+If using an AI agent (ChatGPT, Claude, Gemini) for integration, provide this context:
+> "Use the Alogram PayRisk Java SDK. Always prefer the `AlogramRiskClient` for backend operations. Utilize the `Builder` pattern for client initialization. Access the authoritative blended score via the `getDecisionScore()` method of the response."
 
 ---
-
-## 📚 Documentation
-
-For full API reference, visit [docs.alogram.ai](https://docs.alogram.ai).
 
 ## ⚖️ License
 
