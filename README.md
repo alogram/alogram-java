@@ -1,5 +1,5 @@
 <p align="center">
-  <img src=".github/assets/logo.png" width="200" alt="Alogram PayRisk Logo">
+  <img src="https://raw.githubusercontent.com/alogram/alogram-python/main/.github/assets/logo.png" width="200" alt="Alogram PayRisk Logo">
 </p>
 
 # Alogram PayRisk SDK for Java
@@ -10,7 +10,6 @@
 The official Java client for the **Alogram PayRisk Engine**. 
 
 Alogram PayRisk is a decision management and risk orchestration engine for global commerce. It fuses machine learning, behavioral analytics, and deterministic business rules into a high-fidelity scoring pipeline designed for enterprise scale and auditability.
-
 ## 🧠 The Three-Expert Architecture
 
 The SDK provides unified access to three specialized risk experts:
@@ -19,8 +18,53 @@ The SDK provides unified access to three specialized risk experts:
 -   **Signal Intelligence**: Ingestion of behavioral telemetry and payment lifecycle events.
 -   **Forensic Data**: Deep visibility into historical assessments and decision transparency.
 
-## 🚀 Features
+---
 
+## 🔐 Security: Trust Boundaries
+
+Alogram enforces a strict separation between client-side telemetry and server-side decisioning.
+
+| Client Type | Key Prefix | Environment | Capabilities |
+| :--- | :--- | :--- | :--- |
+| **`AlogramPublicClient`** | `pk_...` | Client/Mobile | **Ingestion only.** Restricted to behavioral signals. |
+| **`AlogramRiskClient`** | `sk_...` | Secure Backend | **Full access.** Authorized for risk decisions and forensics. |
+
+> [!WARNING]
+> **Never** use a Secret Key (`sk_...`) in a client-side environment. This will expose your tenant's sensitive forensic data and violate Alogram's security mandates.
+
+---
+
+## 🔄 Full Lifecycle Integration
+
+A best-in-class integration correlates shopper behavior with the final payment outcome.
+
+```java
+import com.alogram.payrisk.v1.api.PayriskApi;
+import com.alogram.payrisk.v1.models.*;
+
+// 1. Initialize the Secret Client (Singleton Pattern)
+PayriskApi client = new PayriskApi("sk_live_...", "tid_mycorp");
+
+// 2. Assessment: Call before charging the card
+CheckRequest request = new CheckRequest().entities(...).purchase(...);
+DecisionResponse decision = client.riskCheck(request);
+
+if ("approve".equals(decision.getDecision())) {
+    // Process payment via your gateway...
+
+    // 3. Lifecycle: Confirm the authorization outcome
+    PaymentEvent event = new PaymentEvent()
+        .paymentIntentId(decision.getPaymentIntentId())
+        .eventType(PaymentEventType.AUTHORIZATION)
+        .outcome(new PaymentOutcome().authorization(new PaymentAuthorizationOutcome().approved(true)));
+
+    client.ingestPaymentEvent(event);
+}
+```
+
+---
+
+## 🚀 High-Performance Integration
 -   **🏢 Smart Client Architecture**: Thread-safe clients for server-side (`AlogramRiskClient`) and edge (`AlogramPublicClient`).
 -   **🛡️ Automated Identity**: Automatic injection of `x-api-key`, `Authorization`, and tenant headers.
 -   **🔄 Built-in Resiliency**: Transparent exponential backoff and jittered retries (3 retries on 429/5xx).
@@ -59,6 +103,14 @@ System.out.println("Score: " + decision.getDecisionScore());
 ```
 
 ---
+
+## 🚀 High-Performance Integration
+
+To ensure sub-second risk assessment latencies and handle high-volume signal telemetry efficiently, please adhere to these network best practices:
+
+-   **Persistent Client:** Maintain a single, global instance of the `PayriskApi` client (Singleton pattern).
+    -   *Why:* The underlying `java.net.http.HttpClient` is designed to be reused. Re-instantiating it for every request forces expensive TLS handshakes and connection setup.
+-   **Native HTTP/2 Multiplexing:** The Java SDK leverages the native JDK 11+ `HttpClient` which supports HTTP/2 by default. Reusing the client allows multiple telemetry calls to be multiplexed over a single persistent connection.
 
 ## 🛡️ Error Handling & Resiliency
 
