@@ -62,6 +62,39 @@ abstract class AlogramBaseClient {
                 .build();
     }
 
+    /**
+     * 🚀 Intelligent Handshake: Wait for the infrastructure to wake up.
+     * This sends lightweight health checks with exponential backoff to warm up
+     * Cloud Run instances and Load Balancer proxies before actual testing.
+     */
+    public boolean waitForReady(long timeoutSecs) {
+        System.out.println("⏳ Performing JVM infrastructure handshake (timeout: " + timeoutSecs + "s)...");
+        long startTime = System.currentTimeMillis();
+        int attempt = 1;
+
+        while ((System.currentTimeMillis() - startTime) < (timeoutSecs * 1000)) {
+            try {
+                // Lightweight GET /v1/health
+                payriskApi.healthCheck();
+                System.out.println("✅ Infrastructure is READY.");
+                return true;
+            } catch (Exception e) {
+                long waitTime = (long) Math.min(Math.pow(2, attempt), 10);
+                System.out.println("⚠️ Handshake attempt " + attempt + " failed: " + e.getMessage() + ". Retrying in " + waitTime + "s...");
+                try {
+                    Thread.sleep(waitTime * 1000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+                attempt++;
+            }
+        }
+
+        System.err.println("❌ Infrastructure handshake TIMEOUT.");
+        return false;
+    }
+
     private boolean isRetryable(Exception e) {
         if (e instanceof ApiException) {
             int code = ((ApiException) e).getCode();
